@@ -10,7 +10,7 @@ st.set_page_config(page_title="Prediksi Harga Rumah (OLX)", page_icon="🏠", la
 API_URL_DEFAULT = os.getenv("API_URL", "http://localhost:8000")
 CSV_PATH_DEFAULT = os.getenv(
     "CSV_PATH",
-    os.path.join("..", "data", "processed", "final.csv")
+    os.path.join("D:/house/data/processed/final.csv")
 )
 
 with st.sidebar:
