@@ -1,0 +1,32 @@
+services:
+  fastapi:
+    build: .
+    container_name: house-fastapi
+    ports:
+      - "8000:8000"
+    command: uvicorn fastapi_app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - ./models/trained:/app/fastapi_app/models/trained
+
+  # docker-compose.yaml
+  streamlit:
+    build:
+      context: ./streamlit_app
+    container_name: house-streamlit
+    ports:
+      - "8501:8501"
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    environment:
+      API_URL: http://fastapi:8000   # <— ini kuncinya
+      CSV_PATH: models/trained/final.csv       # (opsional, kalau kamu mount CSV)
+    command: streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+    # kalau butuh akses ke final.csv dari host, mount-kan:
+    # volumes:
+    #   - ./data/processed/final.csv:/app/final.csv:ro
