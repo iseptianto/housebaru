@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 import xgboost as xgb
 import yaml
 import logging
+import os
 from mlflow.tracking import MlflowClient
 import platform
 import sklearn
@@ -92,62 +93,83 @@ def main(args):
         logger.info("Registering model to MLflow Model Registry...")
         client = MlflowClient()
         try:
+            # create_registered_model may fail if it already exists or if the
+            # tracking store doesn't support registry operations; ignore failures
             client.create_registered_model(model_name)
-        except mlflow.exceptions.RestException:
-            pass  # already exists
+        except Exception:
+            # fallthrough if model already exists or registry not available
+            logger.info("Registered model may already exist or registry not available; continuing")
 
-        model_version = client.create_model_version(
-            name=model_name,
-            source=model_uri,
-            run_id=mlflow.active_run().info.run_id
-        )
+        try:
+            model_version = client.create_model_version(
+                name=model_name,
+                source=model_uri,
+                run_id=mlflow.active_run().info.run_id
+            )
 
-        # Transition model to "Staging"
-        client.transition_model_version_stage(
-            name=model_name,
-            version=model_version.version,
-            stage="Staging"
-        )
+            # Transition model to "Staging"
+            client.transition_model_version_stage(
+                name=model_name,
+                version=model_version.version,
+                stage="Staging"
+            )
 
-        # Add a human-readable description
-        description = (
-            f"Model for predicting house prices.\n"
-            f"Algorithm: {model_cfg['best_model']}\n"
-            f"Hyperparameters: {model_cfg['parameters']}\n"
-            f"Features used: All features in the dataset except the target variable\n"
-            f"Target variable: {target}\n"
-            f"Trained on dataset: {args.data}\n"
-            f"Model saved at: {args.models_dir}/trained/{model_name}.pkl\n"
-            f"Performance metrics:\n"
-            f"  - MAE: {mae:.2f}\n"
-            f"  - R²: {r2:.4f}"
-        )
-        client.update_registered_model(name=model_name, description=description)
+            # Add a human-readable description
+            description = (
+                f"Model for predicting house prices.\n"
+                f"Algorithm: {model_cfg['best_model']}\n"
+                f"Hyperparameters: {model_cfg['parameters']}\n"
+                f"Features used: All features in the dataset except the target variable\n"
+                f"Target variable: {target}\n"
+                f"Trained on dataset: {args.data}\n"
+                f"Model saved at: {args.models_dir}/trained/{model_name}.pkl\n"
+                f"Performance metrics:\n"
+                f"  - MAE: {mae:.2f}\n"
+                f"  - R²: {r2:.4f}"
+            )
+            try:
+                client.update_registered_model(name=model_name, description=description)
+            except Exception:
+                logger.info("Could not update registered model description; continuing")
 
-        # Add tags for better organization
-        client.set_registered_model_tag(model_name, "algorithm", model_cfg['best_model'])
-        client.set_registered_model_tag(model_name, "hyperparameters", str(model_cfg['parameters']))
-        client.set_registered_model_tag(model_name, "features", "All features except target variable")
-        client.set_registered_model_tag(model_name, "target_variable", target)
-        client.set_registered_model_tag(model_name, "training_dataset", args.data)
-        client.set_registered_model_tag(model_name, "model_path", f"{args.models_dir}/trained/{model_name}.pkl")
+            # Add tags for better organization (coerce values to strings)
+            tags = {
+                "algorithm": model_cfg['best_model'],
+                "hyperparameters": str(model_cfg['parameters']),
+                "features": "All features except target variable",
+                "target_variable": target,
+                "training_dataset": args.data,
+                "model_path": f"{args.models_dir}/trained/{model_name}.pkl",
+            }
+            for k, v in tags.items():
+                try:
+                    client.set_registered_model_tag(model_name, k, str(v))
+                except Exception:
+                    logger.info(f"Failed to set tag {k} on registered model; continuing")
 
-        # Add dependency tags
-        deps = {
-            "python_version": platform.python_version(),
-            "scikit_learn_version": sklearn.__version__,
-            "xgboost_version": xgb.__version__,
-            "pandas_version": pd.__version__,
-            "numpy_version": np.__version__,
-        }
-        for k, v in deps.items():
-            client.set_registered_model_tag(model_name, k, v)
+            # Add dependency tags
+            deps = {
+                "python_version": platform.python_version(),
+                "scikit_learn_version": sklearn.__version__,
+                "xgboost_version": xgb.__version__ if hasattr(xgb, '__version__') else 'n/a',
+                "pandas_version": pd.__version__,
+                "numpy_version": np.__version__,
+            }
+            for k, v in deps.items():
+                try:
+                    client.set_registered_model_tag(model_name, k, str(v))
+                except Exception:
+                    logger.info(f"Failed to set dependency tag {k}; continuing")
+        except Exception as e:
+            logger.info(f"Model registry steps skipped or failed: {e}")
 
-        # Save model locally
-        save_path = f"{args.models_dir}/trained/{model_name}.pkl"
-        joblib.dump(model, save_path)
-        logger.info(f"Saved trained model to: {save_path}")
-        logger.info(f"Final MAE: {mae:.2f}, R²: {r2:.4f}")
+    # Save model locally (ensure directory exists)
+    save_dir = os.path.join(args.models_dir, 'trained')
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{model_name}.pkl")
+    joblib.dump(model, save_path)
+    logger.info(f"Saved trained model to: {save_path}")
+    logger.info(f"Final MAE: {mae:.2f}, R²: {r2:.4f}")
 
 if __name__ == "__main__":
     args = parse_args()

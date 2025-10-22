@@ -1,8 +1,25 @@
+# fastapi_app/main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi_app.schemas import OLXPredictionRequest, PredictionResponse
-from fastapi_app.inference import predict_price
+# ---- Fallback utk pipeline lama yang expect fastapi_app.main._make_interactions
+def _make_interactions(df):
+    """
+    Implementasi minimal agar unpickle FunctionTransformer tidak error.
+    Ganti sesuai logika training aslinya bila ada.
+    """
+    try:
+        df = df.copy()
+        if "LB" in df.columns and "LT" in df.columns:
+            df["LBxLT"] = df["LB"] * df["LT"]     # contoh interaksi umum
+            # jika dulu ada rasio: df["LB_per_LT"] = df["LB"] / df["LT"].replace(0, pd.NA)
+    except Exception:
+        pass
+    return df
+# ---- end fallback
+
+from .schemas import OLXPredictionRequest, PredictionResponse
+from .inference import predict_price
 
 app = FastAPI(title="House Price Prediction API", version="1.0.0")
 

@@ -8,10 +8,7 @@ st.set_page_config(page_title="Prediksi Harga Rumah (OLX)", page_icon="🏠", la
 
 # ====== PENGATURAN ======
 API_URL_DEFAULT = os.getenv("API_URL", "http://localhost:8000")
-CSV_PATH_DEFAULT = os.getenv(
-    "CSV_PATH",
-    os.path.join("D:/house/data/processed/final.csv")
-)
+CSV_PATH_DEFAULT = os.getenv("CSV_PATH", "final.csv")
 
 with st.sidebar:
     st.header("⚙️ Pengaturan")
@@ -104,9 +101,9 @@ if st.button("🔮 Prediksi Harga"):
         "LT": float(luas_tanah),
         "KM": int(kamar_mandi),
         "KT": int(kamar_tidur),
-        "Provensi": provinsi,
+        "Provinsi": provinsi,
         "Kota/Kab": kota_kab,
-        "tyype": tipe
+        "Type": tipe
     }
 
     if ratio_bangunan is not None:

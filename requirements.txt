@@ -5,3 +5,7 @@ pandas>=2.0.0
 numpy>=1.26.0
 scikit-learn
 requests
+mlflow
+xgboost
+joblib
+streamlit>=1.24.0

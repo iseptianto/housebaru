@@ -1,19 +1,32 @@
+version: '3.8'
+
 services:
   fastapi:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: fastapi
     container_name: house-fastapi
     ports:
       - "8000:8000"
     command: python -m fastapi_app.main
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
     volumes:
-      - ./models/trained:/app/fastapi_app/models/trained
+      - ./models/trained:/app/fastapi_app/models/trained:ro
+      - ./data/processed/final.csv:/app/final.csv:ro
+      - mlflow_data:/mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MODEL_PATH: /app/fastapi_app/models/trained/house_price_best.pkl
+      PREPROCESSOR_PATH: /app/fastapi_app/models/trained/preprocessor.pkl
+    networks:
+      - mlops-network
 
-  # docker-compose.yaml
   streamlit:
     build:
       context: ./streamlit_app
@@ -24,9 +37,17 @@ services:
       fastapi:
         condition: service_healthy
     environment:
-      API_URL: http://fastapi:8000   # <— ini kuncinya
-      CSV_PATH: models/trained/final.csv       # (opsional, kalau kamu mount CSV)
+      API_URL: http://fastapi:8000
+      CSV_PATH: /app/final.csv
     command: streamlit run app.py --server.address 0.0.0.0 --server.port 8501
-    # kalau butuh akses ke final.csv dari host, mount-kan:
-    # volumes:
-    #   - ./data/processed/final.csv:/app/final.csv:ro
+    volumes:
+      - ./data/processed/final.csv:/app/final.csv:ro
+    networks:
+      - mlops-network
+
+volumes:
+  mlflow_data:
+
+networks:
+  mlops-network:
+    driver: bridge
