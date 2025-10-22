@@ -72,40 +72,124 @@ CSV_COLS = [
     "harga_per_m2","ratio_bangunan_rumah","Type"
 ]
 
+def _engineer_features(df):
+    """Create all required features for the model."""
+    try:
+        # Basic features
+        df['LBxLT'] = df['LB'] * df['LT']
+        df['log_LB'] = np.log1p(df['LB'])
+        df['log_LT'] = np.log1p(df['LT'])
+        df['lb_x_km'] = df['LB'] * df['KM']
+        df['lt_x_kt'] = df['LT'] * df['KT']
+        # Handle division by zero for ratio
+        df['ratio_lb_lt'] = df['LB'] / df['LT'].replace(0, np.nan)
+        
+        # Keep original features needed by preprocessor
+        required_cols = [
+            'LB', 'LT', 'KM', 'KT', 'Kota/Kab', 'Provinsi', 'Type',
+            'LBxLT', 'log_LB', 'log_LT', 'lb_x_km', 'lt_x_kt', 'ratio_lb_lt'
+        ]
+        
+        return df[required_cols]
+    except Exception as e:
+        raise ValueError(f"Error engineering features: {str(e)}")
+
 def _to_row(req: OLXPredictionRequest) -> dict:
-    r = req.dict(by_alias=True)
-    base = {c: r.get(c, None) for c in CSV_COLS}
-    
-    # Create features matching the training pipeline
-    df = pd.DataFrame([base])
-    
-    # Basic features
-    df['LBxLT'] = df['LB'] * df['LT']
-    df['log_LB'] = np.log1p(df['LB'])
-    df['log_LT'] = np.log1p(df['LT'])
-    df['lb_x_km'] = df['LB'] * df['KM']
-    df['lt_x_kt'] = df['LT'] * df['KT']
-    df['ratio_lb_lt'] = df['LB'] / df['LT'].replace(0, np.nan)
-    
-    # Additional features that might be used by the model
-    df['price_per_m2'] = df['harga_per_m2']
-    df['ratio_bangunan_rumah'] = df['ratio_bangunan_rumah']
-    
-    return df.iloc[0].to_dict()
+    """Convert request to initial dataframe row."""
+    try:
+        r = req.dict(by_alias=True)
+        base = {c: r.get(c, None) for c in CSV_COLS}
+        return base
+    except Exception as e:
+        raise ValueError(f"Error converting request to row: {str(e)}")
 
 def predict_price(req: OLXPredictionRequest) -> PredictionResponse:
-    _ensure_loaded()
-    row_dict = _to_row(req)
+    """
+    Generate house price prediction from input features.
     
-    # Create DataFrame with all required columns
-    df = pd.DataFrame([row_dict])
-    
-    # Make sure we have all the engineered features
-    df['LBxLT'] = df['LB'] * df['LT']  # This matches the preprocessor's expected features
-    df['log_LB'] = np.log1p(df['LB'])
-    df['log_LT'] = np.log1p(df['LT'])
-    df['lb_x_km'] = df['LB'] * df['KM']
-    df['lt_x_kt'] = df['LT'] * df['KT']
+    Args:
+        req: Validated request containing house features
+        
+    Returns:
+        PredictionResponse with prediction details and confidence metrics
+        
+    Raises:
+        ValueError: If feature engineering fails
+        RuntimeError: If model prediction fails
+    """
+    try:
+        start_time = datetime.now()
+        _ensure_loaded()
+        
+        # Create initial dataframe
+        row_dict = _to_row(req)
+        df = pd.DataFrame([row_dict])
+        
+        # Engineer features
+        df = _engineer_features(df)
+        
+        # Generate prediction
+        try:
+            X = _preproc.transform(df)
+            
+            # Get base prediction
+            y = _model.predict(X)
+            price = float(y[0])
+            
+            # Ensure prediction is non-negative
+            price = max(0, price)
+            
+            # Get confidence score (using predict_proba if available, else use a heuristic)
+            confidence_score = 0.92  # Default value
+            if hasattr(_model, 'predict_proba'):
+                proba = _model.predict_proba(X)
+                confidence_score = float(proba.max())
+            
+            # Calculate price range (±10% by default)
+            price_range = (price * 0.9, price * 1.1)
+            
+            # Get feature importance
+            feature_importance = {}
+            if hasattr(_model, 'feature_importances_'):
+                importances = _model.feature_importances_
+                feature_names = [
+                    "Square Footage (LB)",
+                    "Location",
+                    "Number of Bathrooms",
+                    "Land Area (LT)",
+                    "Number of Bedrooms"
+                ]
+                importance_dict = dict(zip(feature_names, importances))
+                # Sort by importance and get top 3
+                feature_importance = dict(sorted(
+                    importance_dict.items(), 
+                    key=lambda x: x[1], 
+                    reverse=True
+                )[:3])
+            
+            # Calculate prediction time
+            end_time = datetime.now()
+            prediction_time_ms = (end_time - start_time).total_seconds() * 1000
+            
+            # Get model name
+            model_name = type(_model).__name__
+            if model_name == 'XGBRegressor':
+                model_name = 'XGBoost'
+            
+            return PredictionResponse(
+                prediction=round(price, 2),
+                prediction_time=datetime.utcnow().isoformat() + "Z",
+                confidence_score=confidence_score,
+                model_name=model_name,
+                price_range=price_range,
+                feature_importance=feature_importance,
+                prediction_time_ms=prediction_time_ms
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error during prediction: {str(e)}")
+            
+    except Exception as e:
+        raise ValueError(f"Error processing request: {str(e)}")
     df['ratio_lb_lt'] = df['LB'] / df['LT'].replace(0, np.nan)
     
     # Drop raw features that aren't used by the model

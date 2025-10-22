@@ -16,7 +16,7 @@ numeric_transformer = Pipeline(steps=[
 ])
 
 categorical_transformer = Pipeline(steps=[
-    ('onehot', OneHotEncoder(drop='first', sparse=False))
+    ('onehot', OneHotEncoder(drop='first', sparse_output=False))
 ])
 
 preprocessor = ColumnTransformer(
@@ -29,9 +29,3 @@ print("Created preprocessor successfully!")
 print("\nSaving preprocessor...")
 joblib.dump(preprocessor, 'd:/house/models/trained/preprocessor.pkl')
 print("Preprocessor saved successfully!")
-                print('-> produced:',fn)
-            except Exception as ee:
-                print('-> get_feature_names_out failed for transformer:',ee)
-
-if hasattr(pre,'steps'):
-    print('Pipeline steps:', [s[0] for s in pre.steps])

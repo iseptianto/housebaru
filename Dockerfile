@@ -5,6 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Install numpy first to ensure correct version
+RUN pip install numpy==1.26.0
+
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 

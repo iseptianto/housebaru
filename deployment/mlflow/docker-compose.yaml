@@ -1,20 +1,31 @@
 ﻿services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-tracking-server
     ports:
       - "8888:5000"
-    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root /mlflow/mlruns
-    container_name: mlflow-tracking-server
+    command: >
+      mlflow server 
+      --host 0.0.0.0 
+      --port 5000 
+      --backend-store-uri sqlite:///mlflow/mlflow.db 
+      --default-artifact-root /mlflow/artifacts
     volumes:
       - mlflow_data:/mlflow
-      - ./mlruns:/tmp/mlruns
-    environment:
-      - MLFLOW_TRACKING_URI=sqlite:///mlflow/mlflow.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mlops-network
 
 volumes:
   mlflow_data:
+    name: mlflow_data
 
 networks:
-  default:
-    name: mlops-network
+  mlops-network:
     external: true
+    name: mlops-network

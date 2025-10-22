@@ -19,7 +19,7 @@ services:
     volumes:
       - ./models/trained:/app/fastapi_app/models/trained:ro
       - ./data/processed/final.csv:/app/final.csv:ro
-      - mlflow_data:/mlflow
+      - ./deployment/mlflow/mlruns:/mlruns
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       MODEL_PATH: /app/fastapi_app/models/trained/house_price_best.pkl
@@ -44,9 +44,6 @@ services:
       - ./data/processed/final.csv:/app/final.csv:ro
     networks:
       - mlops-network
-
-volumes:
-  mlflow_data:
 
 networks:
   mlops-network:

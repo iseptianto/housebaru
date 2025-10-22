@@ -12,7 +12,7 @@ model:
     - '81'
     - '169'
     - '173'
-  mae: 977057564.610237
+  mae: 979935019.3578022
   name: house_price_model
   parameters:
     alpha: 0.9
@@ -36,5 +36,5 @@ model:
     validation_fraction: 0.1
     verbose: 0
     warm_start: false
-  r2_score: 0.5353223865988652
+  r2_score: 0.5313059046778897
   target_variable: price

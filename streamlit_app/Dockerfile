@@ -7,6 +7,6 @@ COPY requirements.txt ./
 RUN python -m pip install --upgrade pip \
  && pip install --timeout 300 --retries 10 -r requirements.txt
 
-COPY app.py .
+COPY app.py translations.py ./
 EXPOSE 8501
 CMD ["streamlit","run","app.py","--server.address=0.0.0.0","--server.port=8501"]
