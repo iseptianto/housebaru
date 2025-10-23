@@ -10,18 +10,9 @@ import sys
 from .schemas import OLXPredictionRequest, PredictionResponse
 
 BASE_DIR = Path(__file__).resolve().parent
-# Primary expected location (when container copies files to fastapi_app/models/trained)
-package_model_path = BASE_DIR / "models" / "trained" / "house_price_best.pkl"
-package_prep_path = BASE_DIR / "models" / "trained" / "preprocessor.pkl"
-
-# Fallback to repository root (project-level models/trained)
-repo_root = BASE_DIR.parent.parent
-repo_model_path = repo_root / "models" / "trained" / "house_price_best.pkl"
-repo_prep_path = repo_root / "models" / "trained" / "preprocessor.pkl"
-
-# Choose default paths: prefer package-local, else repo-level
-DEFAULT_MODEL_PATH = package_model_path if package_model_path.exists() else repo_model_path
-DEFAULT_PREP_PATH = package_prep_path if package_prep_path.exists() else repo_prep_path
+# Default paths for models in container
+DEFAULT_MODEL_PATH = Path("/models/trained/house_price_best.pkl")
+DEFAULT_PREP_PATH = Path("/models/trained/preprocessor.pkl")
 
 # Allow overriding via env vars
 MODEL_PATH = Path(os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH)))

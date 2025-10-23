@@ -1,12 +1,21 @@
 # Base image untuk dependensi Python umum
-FROM python:3.11-slim as base
+FROM python:3.9-slim as base
 WORKDIR /app
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install numpy first to ensure correct version
-RUN pip install numpy==1.26.0
+# First install core numeric libraries and ML dependencies
+RUN pip install --no-cache-dir \
+    numpy==1.24.3 \
+    pandas==1.5.3 \
+    scikit-learn==1.2.2 \
+    xgboost==1.7.3 \
+    mlflow==2.8.0
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

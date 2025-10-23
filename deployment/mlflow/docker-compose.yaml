@@ -27,5 +27,5 @@ volumes:
 
 networks:
   mlops-network:
-    external: true
+    name: mlops-network
     name: mlops-network
