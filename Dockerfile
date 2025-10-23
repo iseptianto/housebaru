@@ -9,13 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# First install core numeric libraries and ML dependencies
+# First install numpy to ensure consistent binary interface
+RUN pip install --no-cache-dir numpy==1.24.3
+
+# Then install other core numeric libraries and ML dependencies
 RUN pip install --no-cache-dir \
-    numpy==1.24.3 \
     pandas==1.5.3 \
     scikit-learn==1.2.2 \
     xgboost==1.7.3 \
-    mlflow==2.8.0
+    joblib==1.3.1
+
+# Install MLflow separately to avoid dependency conflicts
+RUN pip install --no-cache-dir mlflow==2.8.0
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
