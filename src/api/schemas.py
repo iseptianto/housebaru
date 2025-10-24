@@ -9,14 +9,16 @@ class OLXPredictionRequest(BaseModel):
     All measurements should be in standard units (meters, square meters).
     """
     LB: float = Field(
-        ..., 
+        ...,
         gt=0,
-        description="Luas Bangunan (Building Area) in square meters"
+        description="Luas Bangunan (Building Area) in square meters",
+        examples=[120.0, 200.0, 150.0]
     )
     LT: float = Field(
-        ..., 
+        ...,
         gt=0,
-        description="Luas Tanah (Land Area) in square meters"
+        description="Luas Tanah (Land Area) in square meters",
+        examples=[150.0, 300.0, 200.0]
     )
     KM: int = Field(
         ..., 
@@ -31,19 +33,22 @@ class OLXPredictionRequest(BaseModel):
 
     # Location fields with proper aliases
     kota_kab: str = Field(
-        ..., 
+        ...,
         alias="Kota/Kab",
-        description="City/Regency name"
+        description="City/Regency name",
+        examples=["Jakarta Selatan", "Bandung", "Surabaya"]
     )
     provinsi: str = Field(
-        ..., 
+        ...,
         alias="Provinsi",
-        description="Province name"
+        description="Province name",
+        examples=["Jakarta D.K.I.", "Jawa Barat", "Jawa Timur"]
     )
     type_: str = Field(
-        ..., 
+        ...,
         alias="Type",
-        description="Property type/category"
+        description="Property type/category",
+        examples=["rumah", "apartemen"]
     )
 
     # Optional fields

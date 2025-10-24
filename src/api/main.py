@@ -1,6 +1,15 @@
 # fastapi_app/main.py
-from fastapi import FastAPI, HTTPException
+import logging
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ---- Fallback utk pipeline lama yang expect fastapi_app.main._make_interactions
 def _make_interactions(df):
@@ -21,24 +30,57 @@ def _make_interactions(df):
 from .schemas import OLXPredictionRequest, PredictionResponse
 from .inference import predict_price
 
-app = FastAPI(title="House Price Prediction API", version="1.0.0")
+app = FastAPI(
+    title="House Price Prediction API",
+    version="1.0.0",
+    description="API for predicting house prices using machine learning models"
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler for better error responses."""
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error": str(exc)}
+    )
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    """Health check endpoint."""
+    logger.info("Health check requested")
+    return {"status": "ok", "service": "house-price-prediction-api"}
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(req: OLXPredictionRequest):
+    """
+    Predict house price based on input features.
+
+    This endpoint accepts house property details and returns a price prediction
+    along with confidence metrics and feature importance.
+    """
     try:
-        return predict_price(req)
-    except Exception as e:
+        logger.info(f"Prediction request received: {req.dict()}")
+        result = predict_price(req)
+        logger.info(f"Prediction completed successfully: Rp {result.prediction:,.0f}")
+        return result
+    except ValueError as e:
+        logger.warning(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        logger.error(f"Runtime error during prediction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 if __name__ == "__main__":
     import uvicorn

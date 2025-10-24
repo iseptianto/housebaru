@@ -177,11 +177,127 @@ This project is part of the [**MLOps Bootcamp**](https://schoolofdevops.com) at 
 
 ---
 
-## 🤝 Contributing
+## 🐛 Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### 1. **Model/Model Loading Errors**
+```
+FileNotFoundError: Model file not found: /models/trained/house_price_best.pkl
+```
+**Solution:**
+- Ensure you've trained the model first: `python src/models/train_model.py`
+- Check that model files exist in `models/trained/`
+- Verify Docker volume mounting if using containers
+
+#### 2. **CSV Loading Errors in Streamlit**
+```
+Kolom CSV kurang: {'Provinsi', 'Kota/Kab'}. Pastikan ada 'Provinsi' dan 'Kota/Kab'.
+```
+**Solution:**
+- Ensure `final.csv` exists in the project root or set `CSV_PATH` environment variable
+- Check CSV column names match expected format (case-sensitive)
+- Verify CSV file encoding (should be UTF-8)
+
+#### 3. **API Connection Errors**
+```
+Failed to establish connection to FastAPI server
+```
+**Solution:**
+- Ensure FastAPI is running: `docker compose up fastapi`
+- Check API URL in Streamlit settings (default: `http://localhost:8000`)
+- Verify network connectivity in Docker Compose
+
+#### 4. **Port Conflicts**
+```
+Port already in use: 8501 or 8000
+```
+**Solution:**
+- Stop other services using these ports
+- Modify ports in `docker-compose.yaml` if needed
+- Use `docker compose down` to stop all services
+
+#### 5. **MLflow Connection Issues**
+```
+Failed to connect to MLflow tracking server
+```
+**Solution:**
+- Start MLflow: `cd deployment/mlflow && docker compose up -d`
+- Check MLflow URL (default: `http://localhost:5000`)
+- Verify network connectivity
+
+#### 6. **Environment Variable Issues**
+```
+Invalid API_URL format: must start with http:// or https://
+```
+**Solution:**
+- Set proper environment variables:
+  ```bash
+  export API_URL="http://localhost:8000"
+  export CSV_PATH="final.csv"
+  ```
+
+### Development Setup
+
+#### Local Development
+```bash
+# 1. Install dependencies
+uv venv --python python3.11
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# 2. Start MLflow
+cd deployment/mlflow
+docker compose up -d
+
+# 3. Train model
+python src/models/train_model.py --config configs/model_config.yaml --data data/processed/final.csv --models-dir models --mlflow-tracking-uri http://localhost:5000
+
+# 4. Start FastAPI
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 5. Start Streamlit (in another terminal)
+cd streamlit_app
+streamlit run app.py
+```
+
+#### Docker Development
+```bash
+# Build and run all services
+docker compose up --build
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+### Testing
+
+```bash
+# Run API tests
+pytest tests/test_api.py -v
+
+# Run inference tests
+pytest tests/test_inference.py -v
+
+# Run all tests
+pytest tests/ -v
+```
+
+### Performance Optimization
+
+- **Model Loading**: Models are cached after first load
+- **Feature Engineering**: Optimized pandas operations
+- **API**: Async endpoints with proper error handling
+- **Streamlit**: Efficient data loading with caching
+
+### Contributing
 
 We welcome contributions, issues, and suggestions to make this project even better. Feel free to fork, explore, and raise PRs!
 
 ---
 
-Happy Learning!  
+Happy Learning!
 — Team **School of DevOps**
