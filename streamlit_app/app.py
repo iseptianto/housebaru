@@ -12,7 +12,7 @@ st.set_page_config(page_title="House Price Prediction", page_icon="🏠", layout
 lang_col1, lang_col2 = st.columns([4, 1])
 with lang_col2:
     lang = st.selectbox(
-        "",
+        "Language / Bahasa",
         options=['🇺🇸 English', '🇮🇩 Indonesia'],
         index=0,
         key='language'
@@ -26,12 +26,20 @@ def t(key):
 # ====== SETTINGS ======
 def validate_env_vars():
     """Validate required environment variables."""
+    # For Streamlit Cloud, use a mock/demo mode since FastAPI won't be running
     api_url = os.getenv("API_URL", "http://localhost:8000")
     csv_path = os.getenv("CSV_PATH", "final.csv")
 
     # Validate API URL format
     if not api_url.startswith(('http://', 'https://')):
         raise ValueError(f"Invalid API_URL format: {api_url}. Must start with http:// or https://")
+
+    # For Streamlit Cloud deployment, check if we're in demo mode
+    is_streamlit_cloud = os.getenv("STREAMLIT_SERVER_HEADLESS", "false").lower() == "true"
+
+    if is_streamlit_cloud:
+        st.info("🚀 Running in Streamlit Cloud - using demo mode (FastAPI not available)")
+        api_url = "demo"  # Special marker for demo mode
 
     # Validate CSV path exists or is default
     if csv_path != "final.csv" and not os.path.exists(csv_path):
@@ -138,33 +146,58 @@ with col_input:
 
 with col_results:
     if predict_button:
-        payload = {
-            "LB": float(luas_bangunan),
-            "LT": float(luas_tanah),
-            "KM": int(kamar_mandi),
-            "KT": int(kamar_tidur),
-            "Provinsi": provinsi,
-            "Kota/Kab": kota_kab,
-            "Type": tipe
-        }
+        # Check if we're in demo mode (Streamlit Cloud)
+        if api_url == "demo":
+            # Demo mode - simulate prediction
+            import random
+            base_price = (luas_bangunan * luas_tanah * 500000)  # Rough estimate
+            variation = random.uniform(0.8, 1.2)
+            demo_price = base_price * variation
 
-        if ratio_bangunan is not None:
-            payload["ratio_bangunan ruma"] = float(ratio_bangunan)
+            st.success(f"💰 Prediksi harga (Demo): Rp {demo_price:,.0f}")
+            st.info("📝 *Mode Demo*: FastAPI tidak tersedia di Streamlit Cloud. Prediksi ini hanya simulasi.")
 
-        try:
-            resp = requests.post(f"{api_url}/predict", json=payload, timeout=timeout)
-            if resp.ok:
-                result = resp.json()
-                prediction = result.get('prediction', 0)
-                confidence = result.get('confidence_score', 0)
-                price_range = result.get('price_range', (0, 0))
-                model_name = result.get('model_name', 'Unknown')
+            # Show demo details
+            with st.expander("Detail Prediksi Demo"):
+                st.write(f"Luas Bangunan: {luas_bangunan} m²")
+                st.write(f"Luas Tanah: {luas_tanah} m²")
+                st.write(f"Kamar Tidur: {kamar_tidur}")
+                st.write(f"Kamar Mandi: {kamar_mandi}")
+                st.write(f"Provinsi: {provinsi}")
+                st.write(f"Kota/Kabupaten: {kota_kab}")
+                st.write(f"Tipe Properti: {tipe}")
+                if ratio_bangunan:
+                    st.write(f"Ratio Bangunan: {ratio_bangunan:.3f}")
 
-                st.success(f"💰 {t('predicted_price')}: Rp {prediction:,.0f}")
-                st.info(f"🎯 {t('confidence_score')}: {confidence:.1%}")
-                st.info(f"📊 {t('price_range')}: Rp {price_range[0]:,.0f} - Rp {price_range[1]:,.0f}")
-                st.info(f"🤖 {t('model_used')}: {model_name}")
-            else:
-                st.error(f"API error [{resp.status_code}]: {resp.text}")
-        except Exception as e:
-            st.error(f"{t('error_api')}: {e}")
+        else:
+            # Normal mode - call actual API
+            payload = {
+                "LB": float(luas_bangunan),
+                "LT": float(luas_tanah),
+                "KM": int(kamar_mandi),
+                "KT": int(kamar_tidur),
+                "Provinsi": provinsi,
+                "Kota/Kab": kota_kab,
+                "Type": tipe
+            }
+
+            if ratio_bangunan is not None:
+                payload["ratio_bangunan ruma"] = float(ratio_bangunan)
+
+            try:
+                resp = requests.post(f"{api_url}/predict", json=payload, timeout=timeout)
+                if resp.ok:
+                    result = resp.json()
+                    prediction = result.get('prediction', 0)
+                    confidence = result.get('confidence_score', 0)
+                    price_range = result.get('price_range', (0, 0))
+                    model_name = result.get('model_name', 'Unknown')
+
+                    st.success(f"💰 {t('predicted_price')}: Rp {prediction:,.0f}")
+                    st.info(f"🎯 {t('confidence_score')}: {confidence:.1%}")
+                    st.info(f"📊 {t('price_range')}: Rp {price_range[0]:,.0f} - Rp {price_range[1]:,.0f}")
+                    st.info(f"🤖 {t('model_used')}: {model_name}")
+                else:
+                    st.error(f"API error [{resp.status_code}]: {resp.text}")
+            except Exception as e:
+                st.error(f"{t('error_api')}: {e}")
