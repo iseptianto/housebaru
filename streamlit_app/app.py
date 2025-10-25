@@ -38,7 +38,7 @@ def validate_env_vars():
     is_streamlit_cloud = os.getenv("STREAMLIT_SERVER_HEADLESS", "false").lower() == "true"
 
     if is_streamlit_cloud:
-        st.info("🚀 Running in Streamlit Cloud - using demo mode (FastAPI not available)")
+        # st.info("🚀 Running in Streamlit Cloud - using demo mode (FastAPI not available)")
         api_url = "demo"  # Special marker for demo mode
     else:
         # Check if API is available, if not, fall back to demo mode
@@ -46,15 +46,15 @@ def validate_env_vars():
             import requests
             response = requests.get(f"{api_url}/health", timeout=5)
             if not response.ok:
-                st.warning("⚠️ FastAPI server not responding. Falling back to demo mode.")
+                # st.warning("⚠️ FastAPI server not responding. Falling back to demo mode.")
                 api_url = "demo"
         except Exception as e:
-            st.warning(f"⚠️ Cannot connect to FastAPI server: {e}. Falling back to demo mode.")
+            # st.warning(f"⚠️ Cannot connect to FastAPI server: {e}. Falling back to demo mode.")
             api_url = "demo"
 
     # Validate CSV path exists or is default
     if csv_path != "final.csv" and not os.path.exists(csv_path):
-        st.warning(f"CSV path '{csv_path}' not found. Using default 'final.csv'")
+        # st.warning(f"CSV path '{csv_path}' not found. Using default 'final.csv'")
         csv_path = "final.csv"
 
     return api_url, csv_path
@@ -166,7 +166,7 @@ with col_results:
             demo_price = base_price * variation
 
             st.success(f"💰 Prediksi harga (Demo): Rp {demo_price:,.0f}")
-            st.info("📝 *Mode Demo*: FastAPI tidak tersedia di Streamlit Cloud. Prediksi ini hanya simulasi.")
+            # st.info("📝 *Mode Demo*: FastAPI tidak tersedia di Streamlit Cloud. Prediksi ini hanya simulasi.")
 
             # Show demo details
             with st.expander("Detail Prediksi Demo"):
@@ -205,9 +205,9 @@ with col_results:
                     model_name = result.get('model_name', 'Unknown')
 
                     st.success(f"💰 {t('predicted_price')}: Rp {prediction:,.0f}")
-                    st.info(f"🎯 {t('confidence_score')}: {confidence:.1%}")
-                    st.info(f"📊 {t('price_range')}: Rp {price_range[0]:,.0f} - Rp {price_range[1]:,.0f}")
-                    st.info(f"🤖 {t('model_used')}: {model_name}")
+                    # st.info(f"🎯 {t('confidence_score')}: {confidence:.1%}")
+                    # st.info(f"📊 {t('price_range')}: Rp {price_range[0]:,.0f} - Rp {price_range[1]:,.0f}")
+                    # st.info(f"🤖 {t('model_used')}: {model_name}")
                 else:
                     st.error(f"API error [{resp.status_code}]: {resp.text}")
             except Exception as e:
