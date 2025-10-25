@@ -1,30 +1,60 @@
 # 🏠 House Price Predictor – An MLOps Learning Project
 
-Welcome to the **House Price Predictor** project! This is a real-world, end-to-end MLOps use case designed to help you master the art of building and operationalizing machine learning pipelines.
+Welcome to the **House Price Predictor** project! This is a real-world, end-to-end MLOps use case designed to help users, marketing teams, and stakeholders make informed decisions in predicting house prices in Indonesia.
+
+This project aims to assist in decision-making processes for property pricing by providing accurate price predictions based on various property features. The dataset uses OLX.co.id as a reference source, and there's significant potential for improvement by incorporating additional housing price data from other sources to provide more diverse and interesting model variations.
+
+**Key Notes:**
+- Currently covers 21 provinces in Indonesia that actively list houses/apartments on OLX
+- Needs additional data from the remaining 17 provinces (total 38 provinces in Indonesia) to create a more comprehensive and attractive model
 
 You'll start from raw data and move through data preprocessing, feature engineering, experimentation, model tracking with MLflow, and optionally using Jupyter for exploration – all while applying industry-grade tooling.
 
-> 🚀 **Want to master MLOps from scratch?**  
-Check out the [MLOps Bootcamp at School of DevOps](https://schoolofdevops.com) to level up your skills.
-
----
 
 ## 📦 Project Structure
 
 ```
 house-price-predictor/
+├── .github/
+│   └── workflows/          # GitHub Actions CI/CD pipelines
+├── app/
+│   └── fastapi_app/        # Legacy FastAPI application structure
 ├── configs/                # YAML-based configuration for models
 ├── data/                   # Raw and processed datasets
+│   ├── mlflow/            # MLflow tracking database
+│   ├── processed/         # Cleaned and engineered datasets
+│   └── raw/               # Original raw data files
 ├── deployment/
-│   └── mlflow/             # Docker Compose setup for MLflow
-├── models/                 # Trained models and preprocessors
-├── notebooks/              # Optional Jupyter notebooks for experimentation
+│   ├── kubernetes/        # Kubernetes deployment manifests
+│   └── mlflow/            # Docker Compose setup for MLflow
+├── fastapi_app/           # Legacy FastAPI app structure
+├── models/                # Trained models and preprocessors
+│   ├── trained/           # Legacy model storage
+│   ├── modelbaru.pkl      # New trained model
+│   ├── barupreprocessor.pkl # New preprocessor
+│   └── model_config.yaml  # Model configuration
+├── notebooks/             # Jupyter notebooks for experimentation
 ├── src/
-│   ├── data/               # Data cleaning and preprocessing scripts
-│   ├── features/           # Feature engineering pipeline
-│   ├── models/             # Model training and evaluation
-├── requirements.txt        # Python dependencies
-└── README.md               # You’re here!
+│   ├── api/               # FastAPI application code
+│   │   ├── inference.py   # Model inference logic
+│   │   ├── main.py        # FastAPI app entry point
+│   │   ├── schemas.py     # Pydantic models
+│   │   └── utils.py       # Utility functions
+│   ├── data/              # Data cleaning and preprocessing scripts
+│   ├── features/          # Feature engineering pipeline
+│   └── models/            # Model training and evaluation
+├── streamlit_app/         # Streamlit web application
+│   ├── app.py             # Main Streamlit app
+│   ├── Dockerfile         # Streamlit container config
+│   └── translations.py    # Multi-language support
+├── tests/                 # Unit and integration tests
+├── training/              # Training pipeline scripts
+├── create_new_model.py    # Script to create new models
+├── docker-compose.yaml    # Multi-service orchestration
+├── Dockerfile             # FastAPI container config
+├── final.csv              # Dataset for Streamlit app
+├── requirements.txt       # Python dependencies
+└── README.md              # You’re here!
 ```
 
 ---
@@ -134,46 +164,61 @@ python src/models/train_model.py   --config configs/model_config.yaml   --data d
 ---
 
 
-## Building FastAPI and Streamlit 
+## Building FastAPI and Streamlit
 
-The code for both the apps are available in `src/api` and `streamlit_app` already. To build and launch these apps 
+The code for both applications is available in `src/api` and `streamlit_app`. To build and launch these apps:
 
-  * Add a  `Dockerfile` in the root of the source code for building FastAPI  
-  * Add `streamlit_app/Dockerfile` to package and build the Streamlit app  
-  * Add `docker-compose.yaml` in the root path to launch both these apps. be sure to provide `API_URL=http://fastapi:8000` in the streamlit app's environment. 
+### Quick Start with Docker Compose
 
+```bash
+# Build and run all services
+docker compose up --build
 
-Once you have launched both the apps, you should be able to access streamlit web ui and make predictions. 
+# Or run in background
+docker compose up -d --build
 
-You could also test predictions with FastAPI directly using 
+# View running services
+docker compose ps
 
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
 ```
+
+### Manual Setup
+
+1. **FastAPI Application** (`src/api/`)
+   - Dockerfile is available in the root directory
+   - Run locally: `uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload`
+
+2. **Streamlit Application** (`streamlit_app/`)
+   - Dockerfile is available in `streamlit_app/`
+   - Run locally: `cd streamlit_app && streamlit run app.py`
+   - Set `API_URL=http://fastapi:8000` in environment for Streamlit to connect to FastAPI
+
+### Testing the API
+
+Once both apps are running, you can access the Streamlit web UI and make predictions.
+
+You can also test predictions with FastAPI directly using:
+
+```bash
 curl -X POST "http://localhost:8000/predict" \
 -H "Content-Type: application/json" \
 -d '{
-  "sqft": 1500,
-  "bedrooms": 3,
-  "bathrooms": 2,
-  "location": "suburban",
-  "year_built": 2000,
-  "condition": fair
+  "LB": 120,
+  "LT": 150,
+  "KM": 2,
+  "KT": 3,
+  "Provinsi": "Jawa Barat",
+  "Kota/Kab": "Bandung",
+  "Type": "rumah"
 }'
-
 ```
 
-Be sure to replace `http://localhost:8000/predict` with actual endpoint based on where its running. 
-
-
-## 🧠 Learn More About MLOps
-
-This project is part of the [**MLOps Bootcamp**](https://schoolofdevops.com) at School of DevOps, where you'll learn how to:
-
-- Build and track ML pipelines
-- Containerize and deploy models
-- Automate training workflows using GitHub Actions or Argo Workflows
-- Apply DevOps principles to Machine Learning systems
-
-🔗 [Get Started with MLOps →](https://schoolofdevops.com)
+**Note:** Replace `http://localhost:8000/predict` with the actual endpoint URL based on your deployment.
 
 ---
 
@@ -293,11 +338,34 @@ pytest tests/ -v
 - **API**: Async endpoints with proper error handling
 - **Streamlit**: Efficient data loading with caching
 
-### Contributing
+### 🤝 Contributing
 
 We welcome contributions, issues, and suggestions to make this project even better. Feel free to fork, explore, and raise PRs!
+
+### 📊 Dataset Enhancement Opportunities
+
+To improve model accuracy and coverage:
+
+- **Add more provinces**: Currently covers 21 provinces, needs 17 more for complete Indonesia coverage
+- **Additional data sources**: Incorporate data from other property platforms beyond OLX
+- **Real-time data**: Implement data pipelines for continuous updates
+- **Property features**: Add more features like year built, condition, amenities, etc.
+
+### 🔄 Future Improvements
+
+- Multi-language support expansion
+- Advanced model architectures (neural networks, ensemble methods)
+- Real-time prediction API with caching
+- Mobile application development
+- Integration with property listing platforms
 
 ---
 
 Happy Learning!
-— Team **School of DevOps**
+
+## 📞 Contact
+
+**Indra Septianto**
+- Instagram: [@iseptianto](https://instagram.com/iseptianto)
+- LinkedIn: [indra-septianto17](https://www.linkedin.com/in/indraseptianto17/)
+
