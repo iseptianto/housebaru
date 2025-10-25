@@ -40,6 +40,17 @@ def validate_env_vars():
     if is_streamlit_cloud:
         st.info("🚀 Running in Streamlit Cloud - using demo mode (FastAPI not available)")
         api_url = "demo"  # Special marker for demo mode
+    else:
+        # Check if API is available, if not, fall back to demo mode
+        try:
+            import requests
+            response = requests.get(f"{api_url}/health", timeout=5)
+            if not response.ok:
+                st.warning("⚠️ FastAPI server not responding. Falling back to demo mode.")
+                api_url = "demo"
+        except Exception as e:
+            st.warning(f"⚠️ Cannot connect to FastAPI server: {e}. Falling back to demo mode.")
+            api_url = "demo"
 
     # Validate CSV path exists or is default
     if csv_path != "final.csv" and not os.path.exists(csv_path):

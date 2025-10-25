@@ -26,13 +26,26 @@ DEFAULT_PREP_PATH = Path("/models/barupreprocessor.pkl")
 MODEL_PATH = Path(os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH)))
 PREPROCESSOR_PATH = Path(os.getenv("PREPROCESSOR_PATH", str(DEFAULT_PREP_PATH)))
 
+# For local development, try relative paths if absolute paths don't exist
+if not MODEL_PATH.exists() and not str(MODEL_PATH).startswith('/'):
+    local_model_path = BASE_DIR.parent.parent / "models" / "modelbaru.pkl"
+    if local_model_path.exists():
+        MODEL_PATH = local_model_path
+        logger.info(f"Using local model path: {MODEL_PATH}")
+
+if not PREPROCESSOR_PATH.exists() and not str(PREPROCESSOR_PATH).startswith('/'):
+    local_prep_path = BASE_DIR.parent.parent / "models" / "barupreprocessor.pkl"
+    if local_prep_path.exists():
+        PREPROCESSOR_PATH = local_prep_path
+        logger.info(f"Using local preprocessor path: {PREPROCESSOR_PATH}")
+
 # Validate environment variables
 def validate_env_vars():
     """Validate required environment variables for inference."""
     if not MODEL_PATH.exists():
-        logger.warning(f"Model path {MODEL_PATH} does not exist. Using default.")
+        logger.warning(f"Model path {MODEL_PATH} does not exist. This may cause issues during deployment.")
     if not PREPROCESSOR_PATH.exists():
-        logger.warning(f"Preprocessor path {PREPROCESSOR_PATH} does not exist. Using default.")
+        logger.warning(f"Preprocessor path {PREPROCESSOR_PATH} does not exist. This may cause issues during deployment.")
 
     return MODEL_PATH, PREPROCESSOR_PATH
 
