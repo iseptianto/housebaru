@@ -35,7 +35,7 @@ jobs:
 
       - name: Engineer features
         run: |
-          python src/features/engineer.py --input data/processed/cleaned_house_data.csv --output data/processed/featured_house_data.csv --preprocessor models/trained/preprocessor.pkl
+          python src/features/engineer.py --input data/processed/cleaned_house_data.csv --output data/processed/featured_house_data.csv --preprocessor models/barupreprocessor.pkl
 
       - name: Upload processed data
         uses: actions/upload-artifact@v4
@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: preprocessor
-          path: models/trained/preprocessor.pkl
+          path: models/barupreprocessor.pkl
 
   model-training:
     needs: data-processing
@@ -81,7 +81,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: preprocessor
-          path: models/trained/
+          path: models/
 
       - name: Set up MLflow
         run: |
@@ -99,7 +99,7 @@ jobs:
 
       - name: Train model
         run: |
-          python src/models/train_model.py --config configs/model_config.yaml --data data/processed/featured_house_data.csv --models-dir models --mlflow-tracking-uri http://localhost:5000
+          python src/models/train_model.py --config models/model_config.yaml --data data/processed/featured_house_data.csv --models-dir models --mlflow-tracking-uri http://localhost:5000
 
       - name: Upload trained model
         uses: actions/upload-artifact@v4
@@ -130,7 +130,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: preprocessor
-          path: models/trained/
+          path: models/
 
       - name: Create final.csv for Streamlit
         run: |

@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 # Default paths for models in container
-DEFAULT_MODEL_PATH = Path("/models/trained/house_price_best.pkl")
-DEFAULT_PREP_PATH = Path("/models/trained/preprocessor.pkl")
+DEFAULT_MODEL_PATH = Path("/models/modelbaru.pkl")
+DEFAULT_PREP_PATH = Path("/models/barupreprocessor.pkl")
 
 # Allow overriding via env vars
 MODEL_PATH = Path(os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH)))
@@ -95,8 +95,7 @@ def _ensure_loaded():
             raise RuntimeError(error_msg)
 
 CSV_COLS = [
-    "LB","LT","KM","KT","Kota/Kab","Provinsi",
-    "harga_per_m2","ratio_bangunan_rumah","Type"
+    "LB","LT","KM","KT","Kota/Kab","Provinsi","Type"
 ]
 
 def _engineer_features(df):
