@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 set -e
+
+echo "[init] preparing /app/models"
 mkdir -p /app/models
-if [ ! -f /app/models/modelbaru.pkl ]; then
-  echo "Downloading model..."
-  curl -L "$MODEL_URL" -o /app/models/modelbaru.pkl
-fi
-if [ ! -f /app/models/barupreprocessor.pkl ]; then
-  echo "Downloading preprocessor..."
-  curl -L "$PREPROCESSOR_URL" -o /app/models/barupreprocessor.pkl
-fi
+
+download() {
+  local url="$1"
+  local out="$2"
+  if [ -n "$url" ] && [ ! -f "$out" ]; then
+    echo "[init] downloading $out ..."
+    # -f: fail on http errors, -L: follow redirect, --retry: robust
+    curl -fL --retry 3 --retry-delay 2 "$url" -o "$out"
+  fi
+}
+
+download "$MODEL_URL" "/app/models/modelbaru.pkl"
+download "$PREPROCESSOR_URL" "/app/models/barupreprocessor.pkl"
+
+echo "[init] starting streamlit..."
 exec "$@"
